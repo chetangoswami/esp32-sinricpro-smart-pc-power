@@ -1,0 +1,12 @@
+# PlatformIO build artifacts
+.pio/
+
+# VSCode settings
+.vscode/
+
+# Sensitive credentials backup
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
