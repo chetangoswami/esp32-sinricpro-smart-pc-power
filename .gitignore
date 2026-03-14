@@ -1,6 +1,13 @@
 # PlatformIO build artifacts
 .pio/
 
+# User credentials — NEVER commit this!
+src/config.h
+
+# Scratch / debug files
+ip.json
+rule.json
+
 # VSCode settings
 .vscode/
 

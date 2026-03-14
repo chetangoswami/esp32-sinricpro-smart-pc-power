@@ -3,26 +3,10 @@
 #include "SinricPro.h"
 #include "SinricProSwitch.h"
 #include <ESP32Ping.h>
-
-// ==========================================
-// CONFIGURATION
-// ==========================================
-
-// Wi-Fi Credentials
-#define WIFI_SSID     "Slayer.24.g"
-#define WIFI_PASS     "@Chetan12"
-
-// Sinric Pro Credentials
-#define APP_KEY       "fd736a79-51b4-4b30-afa2-f45bbce33367"
-#define APP_SECRET    "67b87217-088f-4c36-a5f5-27931acb70b9-c833939d-1fc4-44cc-a0c3-413b4cc0b614"
-#define SWITCH_ID     "69b57d73dafb005af4d484a4"       // Normal Power Button
-#define SWITCH_ID_FORCE_RESTART "69b5d96ec2dbd7108b3dcd77" // 5-Second Kill Switch
-
-// Hardware Pin Definition
-#define RELAY_PIN 21 // Safe pin (moved from D5 which is a strapping pin)
+#include "config.h"  // << Fill in your credentials here (never committed)
 
 // PC Monitoring Configuration
-IPAddress pc_ip(192, 168, 1, 34);
+IPAddress pc_ip;
 bool lastKnownPCState = false; // false = OFF, true = ON
 unsigned long lastPingTime = 0;
 const unsigned long PING_INTERVAL = 5000; // Ping every 5 seconds
