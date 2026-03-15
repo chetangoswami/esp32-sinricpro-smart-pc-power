@@ -120,8 +120,35 @@ Standard 5V relay modules don't fully turn off when driven by a 3.3V ESP32 GPIO 
 ### Digital Ping Power Sensing
 Every 5 seconds, the ESP32 sends an ICMP ping to your PC's local IP. If the ping succeeds → PC is ON. If it times out → PC is OFF. This state is pushed to Sinric Pro, so your app always shows the real, live power status.
 
+```mermaid
+graph TD
+    A[ESP32 Timer: 5 Seconds] --> B{Ping PC IP Address}
+    B -- Success --> C[PC is ON]
+    B -- Timeout --> D[PC is OFF]
+    C --> E{State Changed?}
+    D --> E
+    E -- Yes --> F[Update Sinric Pro App]
+    E -- No --> G[Wait 5 Seconds]
+    F --> G
+```
+
 ### Force Restart Logic
 When you press the **Force Restart** switch, the relay holds the PC power button for **5 seconds**. This duration bypasses Windows ACPI and triggers the motherboard's hardware-level power cut — useful when the PC is completely frozen.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant SinricPro
+    participant ESP32
+    participant PC_Motherboard
+    
+    User->>SinricPro: "Force Restart PC"
+    SinricPro->>ESP32: Trigger Force Switch
+    ESP32->>PC_Motherboard: Pull PWR_SW LOW (ON)
+    Note over ESP32,PC_Motherboard: Hold for 5000ms
+    ESP32->>PC_Motherboard: Release PWR_SW (OFF)
+    Note over PC_Motherboard: Hardware Power Cut Enforced
+```
 
 ---
 
