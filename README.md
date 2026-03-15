@@ -117,6 +117,26 @@ Standard 5V relay modules don't fully turn off when driven by a 3.3V ESP32 GPIO 
 - **`OUTPUT LOW`** (0V) → Relay turns ON → PC power button pressed
 - **`INPUT` (floating)** → Relay turns OFF via its own 5V pull-up → No voltage fight
 
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> Floating
+    
+    Floating --> Pulled_LOW : "Turn ON" Command
+    note left of Floating
+      ESP32 Pin = INPUT
+      Relay is OFF
+      (Safe / Invisible)
+    end note
+    
+    Pulled_LOW --> Floating : 700ms Delay Ends
+    note right of Pulled_LOW
+      ESP32 Pin = OUTPUT LOW
+      Relay is ON
+      (Power Button Pressed)
+    end note
+```
+
 ### Digital Ping Power Sensing
 Every 5 seconds, the ESP32 sends an ICMP ping to your PC's local IP. If the ping succeeds → PC is ON. If it times out → PC is OFF. This state is pushed to Sinric Pro, so your app always shows the real, live power status.
 
@@ -148,6 +168,32 @@ sequenceDiagram
     Note over ESP32,PC_Motherboard: Hold for 5000ms
     ESP32->>PC_Motherboard: Release PWR_SW (OFF)
     Note over PC_Motherboard: Hardware Power Cut Enforced
+```
+
+### Safety Overrides
+To prevent you from accidentally turning off your PC while gaming, or turning it "ON" when it is already running (which would actually shut it down), the ESP32 intercepts commands and checks the real `<PC_IP>` state first.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant SinricPro
+    participant ESP32
+    participant PC_IP
+    
+    User->>SinricPro: "Turn ON my PC"
+    SinricPro->>ESP32: ON Command
+    ESP32->>PC_IP: ICMP Ping
+    
+    alt PC is already ON (Ping Success)
+        PC_IP-->>ESP32: Reply
+        note over ESP32: Command Ignored (Safety)
+        ESP32-->>SinricPro: State remains ON
+    else PC is OFF (Ping Timeout)
+        PC_IP--xESP32: Timeout
+        note over ESP32: Safe to proceed
+        ESP32->>Relay: Pulse 700ms
+        ESP32-->>SinricPro: State changed to ON
+    end
 ```
 
 ---
