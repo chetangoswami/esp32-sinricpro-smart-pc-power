@@ -13,6 +13,17 @@
 
 ---
 
+## 📑 Table of Contents
+- [Features](#-features)
+- [Hardware Required](#-hardware-required)
+- [Wiring Diagram](#-wiring-diagram)
+- [Getting Started (Setup Guide)](#-getting-started)
+- [How It Works](#-how-it-works)
+- [Usage Examples](#-usage-examples)
+- [Customization](#-customization)
+
+---
+
 ## ✨ Features
 
 | Feature | Description |
@@ -21,7 +32,7 @@
 | 📡 **Live Power State Detection** | Pings your PC every 5s to know if it's really ON or OFF |
 | 🛡️ **Safety Overrides** | Blocks accidental shutdown if PC is already in that state |
 | ⚡ **Force Restart Kill-Switch** | Holds the power button 5s for a hardware-level reboot |
-| 🔔 **Boot-Up Push Notification** | Get a phone alert the moment your PC finishes booting |
+| 🔔 **Boot-Up Push Notification** | Receive a phone alert the moment your PC finishes booting |
 | 💸 **Zero Extra Cost** | Uses your existing ESP32 + $1 relay — no new hardware |
 
 ---
@@ -74,7 +85,7 @@ graph TD
     VoiceApp -.->|Cloud Sync| SinricPro[Sinric Pro Cloud]
     
     subgraph Local Network
-        Router[WiFi Router]
+        Router[Wi-Fi Router]
         ESP32[ESP32 Microcontroller]
         PC[Gaming PC]
         

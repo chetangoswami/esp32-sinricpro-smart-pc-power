@@ -2,6 +2,9 @@
 
 Welcome to the full user guide for the **ESP32 Smart PC Power Controller**. This document provides detailed, step-by-step instructions for getting your project up and running from scratch, plus solutions to the most common problems.
 
+> ⏱️ **Estimated setup time:** 15-20 minutes
+> 🔙 **[Return to Main Project README](README.md)**
+
 ---
 
 ## 📑 Table of Contents
@@ -23,7 +26,7 @@ Before you begin, make sure you have the following:
 * **ESP32 Development Board** (NodeMCU-32S, WROOM-32, etc.)
 * **5V Single-Channel Relay Module** (Low-Level Trigger or High/Low adjustable)
 * **Female-to-Female Jumper Wires** (at least 3)
-* A micro-USB or USB-C cable (capable of data transfer)
+* A Micro-USB or USB-C cable (capable of data transfer)
 
 ### Software
 * A free account on [portal.sinric.pro](https://portal.sinric.pro)
@@ -34,7 +37,7 @@ Before you begin, make sure you have the following:
 
 ## 2. Hardware Setup & Wiring
 
-Wiring the relay is simple, but getting the pins right is crucial for the ESP32 to boot correctly.
+Wiring the relay is straightforward, but selecting the correct pins is crucial to prevent ESP32 boot failures.
 
 | ESP32 Pin | Relay Pin | Description |
 | :--- | :--- | :--- |
@@ -141,7 +144,9 @@ By default, **Windows Firewall blocks incoming pings**. We must allow them:
 ```powershell
 New-NetFirewallRule -DisplayName "Allow Ping (ESP32)" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Enabled True -Profile Any -Action Allow
 ```
-*Note: Make sure your PC has a Static IP address set in your router so the ESP32 doesn't lose it if the IP changes!*
+*Note: Make sure your PC has a Static IP address set in your Wi-Fi router so the ESP32 doesn't lose it if the IP changes!*
+
+> ✅ **How to verify:** Open the Command Prompt or Terminal on another device connected to your network (like a laptop or another PC) and type `ping 192.168.1.X` (replace with your PC's IP). If you get replies, the firewall rule worked!
 
 ---
 
@@ -172,3 +177,7 @@ Open the Sinric Pro app on your phone (or the web dashboard).
 ### The Relay is stuck ON permanently
 * **Using a 5V relay on 3.3V logic?** Standard Arduino relays expect a 5V control signal. When the ESP32 sends 3.3V, the relay thinks it is "LOW" and stays ON forever. 
 * **The Fix:** This codebase automatically handles this using a "True Open-Drain" trick (switching the pin mode to `INPUT` to float the voltage). Ensure you haven't modified the `triggerRelay()` function in `main.cpp`.
+
+---
+
+🔙 **[Return to Main Project README](README.md)**
