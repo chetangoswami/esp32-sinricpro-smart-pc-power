@@ -55,58 +55,11 @@ D21  ─────────► IN
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-### Step 1: Set Up Sinric Pro
+**We've moved all hardware, wiring, Sinric Pro, and Firewall setup instructions to a dedicated guide.**
 
-1. Create a free account at [portal.sinric.pro](https://portal.sinric.pro).
-2. Go to **Devices → Add Device**, choose **Switch**, name it **"PC Power"**.
-3. Add a second **Switch** device named **"PC Force Restart"**.
-4. Go to **Credentials** and copy your **App Key** and **App Secret**.
-
-### Step 2: Add to Google Home / Alexa
-
-1. In the Google Home or Alexa app, link the **Sinric Pro** skill.
-2. Your two switches will appear as smart home devices.
-3. *(Optional)* Create a Google Home Routine: Phrase "hard reset my PC" → Force Restart switch ON.
-
-### Step 3: Add a Windows Firewall Rule
-
-The ESP32 pings your PC to detect its power state. Windows blocks pings by default. Open **PowerShell as Administrator** and run:
-
-```powershell
-New-NetFirewallRule -DisplayName "Allow Ping (ESP32)" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Enabled True -Profile Any -Action Allow
-```
-
-### Step 4: Configure the Firmware
-
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/chetangoswami/esp32-sinricpro-smart-pc-power.git
-   cd esp32-sinricpro-smart-pc-power
-   ```
-
-2. Copy the example config file and fill in your details:
-   ```bash
-   cp src/config.example.h src/config.h
-   ```
-   Then edit `src/config.h`:
-   ```cpp
-   #define WIFI_SSID     "YourWiFi"
-   #define WIFI_PASS     "YourPassword"
-   #define APP_KEY       "your-sinric-app-key"
-   #define APP_SECRET    "your-sinric-app-secret"
-   #define SWITCH_ID               "your-power-switch-device-id"
-   #define SWITCH_ID_FORCE_RESTART "your-force-restart-device-id"
-   #define PC_IP_ADDRESS "192.168.1.X"   // Your PC's local IP (run ipconfig)
-   #define RELAY_PIN 21
-   ```
-
-### Step 5: Flash the ESP32
-
-1. Install [VS Code](https://code.visualstudio.com/) with the [PlatformIO extension](https://platformio.org/install/ide?install=vscode).
-2. Open this project folder in VS Code.
-3. Click the **Upload** button (→ arrow) in the bottom toolbar.
+👉 **[Read the Complete User Guide & Troubleshooting Manual here!](USER_GUIDE.md)** 👈
 
 ---
 
