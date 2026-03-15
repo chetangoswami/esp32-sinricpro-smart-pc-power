@@ -65,6 +65,38 @@ D21  ─────────► IN
 
 ## 💡 How It Works
 
+### High-Level System Architecture
+Here is how the entire system communicates. The ESP32 acts as the bridge between the Cloud (Google/Alexa) and your physical hardware (the PC Case).
+
+```mermaid
+graph TD
+    User([User]) -.->|Voice Command| VoiceApp[Google Home / Alexa]
+    VoiceApp -.->|Cloud Sync| SinricPro[Sinric Pro Cloud]
+    
+    subgraph Local Network
+        Router[WiFi Router]
+        ESP32[ESP32 Microcontroller]
+        PC[Gaming PC]
+        
+        Router --- ESP32
+        Router --- PC
+    end
+    
+    SinricPro == WebSocket ==> Router
+    ESP32 == ICMP Ping ==> PC
+
+    ESP32 -- 5V Relay --> Case[PC Motherboard]
+    
+    classDef cloud fill:#2c3e50,stroke:#34495e,stroke-width:2px,color:#ecf0f1;
+    classDef hardware fill:#27ae60,stroke:#2ecc71,stroke-width:2px,color:#fff;
+    
+    SinricPro:::cloud
+    VoiceApp:::cloud
+    ESP32:::hardware
+    PC:::hardware
+    Router:::hardware
+```
+
 ### The "Open-Drain" Voltage Trick
 Standard 5V relay modules don't fully turn off when driven by a 3.3V ESP32 GPIO — the relay gets "stuck ON". Instead of trying to output a HIGH voltage, this firmware toggles the pin between:
 - **`OUTPUT LOW`** (0V) → Relay turns ON → PC power button pressed
