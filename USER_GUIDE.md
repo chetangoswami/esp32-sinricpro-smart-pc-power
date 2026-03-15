@@ -42,6 +42,35 @@ Wiring the relay is simple, but getting the pins right is crucial for the ESP32 
 | **GND** | **GND** | System Ground. |
 | **D21** (GPIO 21) | **IN** | The control signal. Do **NOT** use `D5` (strapping pin). |
 
+```mermaid
+graph LR
+    subgraph ESP32 Board
+        VIN[VIN / 5V]
+        GND1[GND]
+        D21[D21 / GPIO 21]
+    end
+
+    subgraph 5V Relay Module
+        VCC[VCC]
+        GND2[GND]
+        IN[IN]
+        COM[COM]
+        NO[NO]
+    end
+
+    subgraph PC Motherboard
+        PWR[PWR_SW +]
+        PWRG[PWR_SW -]
+    end
+
+    VIN -->|Power wire| VCC
+    GND1 -->|Ground wire| GND2
+    D21 -->|Control signal| IN
+
+    COM -.->|Case Power Wire| PWR
+    NO -.->|Case Power Wire| PWRG
+```
+
 ### Connecting to the PC
 On the opposite end of the relay (the screw terminals), connect your PC's power button wires.
 
