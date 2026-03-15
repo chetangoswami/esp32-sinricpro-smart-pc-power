@@ -112,6 +112,20 @@ We need to create two "Virtual Switches" in the cloud so Google Assistant can ta
 5. Click the **PlatformIO Upload (→)** button in the bottom blue toolbar of VS Code.
 6. Once the upload finishes, click the **PlatformIO Serial Monitor (plug icon)** to watch it boot. You should see `[WiFi] Connected!` and `[SinricPro] Connected to cloud`.
 
+#### CLI / Terminal Alternative
+If you prefer using the command line instead of the VS Code GUI, you can flash and monitor the ESP32 using the PlatformIO Core CLI:
+
+```bash
+# Build the firmware
+pio run
+
+# Build and upload to the ESP32
+pio run -t upload
+
+# Open the Serial Monitor to watch it boot
+pio device monitor -b 115200
+```
+
 ---
 
 ## 5. Windows Configuration (Firewall)
