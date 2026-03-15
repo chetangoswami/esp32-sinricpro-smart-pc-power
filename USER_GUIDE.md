@@ -26,7 +26,7 @@ Before you begin, make sure you have the following:
 * **ESP32 Development Board** (NodeMCU-32S, WROOM-32, etc.)
 * **5V Single-Channel Relay Module** (Low-Level Trigger or High/Low adjustable)
 * **Female-to-Female Jumper Wires** (at least 3)
-* A Micro-USB or USB-C cable (capable of data transfer)
+* A Micro-USB or USB-C cable (for data) and a reliable **5V/1A+ USB wall charger**
 
 ### Software
 * A free account on [portal.sinric.pro](https://portal.sinric.pro)
@@ -62,8 +62,8 @@ graph LR
     end
 
     subgraph PC Motherboard
-        PWR[PWR_SW +]
-        PWRG[PWR_SW -]
+        PWR[PWR_SW Pin 1]
+        PWRG[PWR_SW Pin 2]
     end
 
     VIN -->|Power wire| VCC
@@ -80,6 +80,9 @@ On the opposite end of the relay (the screw terminals), connect your PC's power 
 1. Locate the **Front Panel Header** on your PC motherboard.
 2. Find the two pins labeled `PWR_SW` (Power Switch). Your PC case's power button is usually plugged in here.
 3. Unplug the case wires (or splice into them) and connect them to the **`COM`** (Common) and **`NO`** (Normally Open) terminals on the relay. *Polarity does not matter here.*
+
+### Reverting / Uninstallation
+Worried about modifying your PC hardware? Don't be! This upgrade is 100% reversible. To uninstall, simply unplug the two PC Case wires from the relay's `COM` and `NO` terminals, and plug them directly back onto the two `PWR_SW` pins on your motherboard. Your PC will immediately return to factory condition.
 
 ---
 
@@ -144,9 +147,13 @@ By default, **Windows Firewall blocks incoming pings**. We must allow them:
 ```powershell
 New-NetFirewallRule -DisplayName "Allow Ping (ESP32)" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Enabled True -Profile Any -Action Allow
 ```
-*Note: Make sure your PC has a Static IP address set in your Wi-Fi router so the ESP32 doesn't lose it if the IP changes!*
-
 > ✅ **How to verify:** Open the Command Prompt or Terminal on another device connected to your network (like a laptop or another PC) and type `ping 192.168.1.X` (replace with your PC's IP). If you get replies, the firewall rule worked!
+
+### 5a. Set a Static IP Address
+Because this project relies on pinging your PC, **you must ensure your PC's IP address never changes.** If your router reboots and hands your PC a new IP, the ESP32 will think the PC is permanently offline. 
+1. Log into your Wi-Fi router's admin panel.
+2. Find the **DHCP Reservation** or **Static IP** section.
+3. Lock your PC's MAC address to its current local IP.
 
 ---
 
