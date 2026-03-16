@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include "SinricPro.h"
 #include "SinricProSwitch.h"
 #include <ESP32Ping.h>
@@ -123,7 +124,10 @@ void setupWiFi() {
     delay(250);
   }
   
-  Serial.printf("\r\n[WiFi] Connected!\r\n[WiFi] IP Address: %s\r\n", WiFi.localIP().toString().c_str());
+  Serial.printf("\r\n[WiFi] Reconnected!\r\n[WiFi] IP Address: %s\r\n", WiFi.localIP().toString().c_str());
+
+  // Start mDNS client so we can resolve hostnames like DESKTOP-XXXX.local
+  MDNS.begin("esp32");
 
   // Sync internal clock via NTP to ensure SSL connections succeed
   Serial.print("[WiFi] Syncing time with NTP...");
@@ -179,13 +183,15 @@ void setup() {
   setupWiFi();
   wasWifiConnected = true; // Mark as connected so loop() doesn't fire a false reconnect event
 
-  // Resolve PC hostname to IP once at boot
-  Serial.printf("[DNS] Resolving PC hostname: %s ...\r\n", PC_HOSTNAME);
-  if (WiFi.hostByName(PC_HOSTNAME, pc_ip) == 1) {
+  // Resolve PC hostname to IP once at boot using mDNS
+  Serial.printf("[mDNS] Resolving PC hostname: %s.local ...\r\n", PC_HOSTNAME);
+  IPAddress resolved = MDNS.queryHost(PC_HOSTNAME, 2000);
+  if (resolved != INADDR_NONE) {
+    pc_ip = resolved;
     pcIpResolved = true;
-    Serial.printf("[DNS] Resolved to: %s\r\n", pc_ip.toString().c_str());
+    Serial.printf("[mDNS] Resolved to: %s\r\n", pc_ip.toString().c_str());
   } else {
-    Serial.println("[DNS] Resolution failed at boot. Will retry on router reconnect.");
+    Serial.println("[mDNS] Resolution failed at boot. Will retry on reconnect.");
   }
 
   // Setup Sinric Pro Cloud connection
@@ -243,13 +249,16 @@ void loop() {
     // --- RECONNECT EVENT DETECTED ---
     // WiFi just came back up. Re-resolve the hostname first (DHCP may have
     // given the PC a new IP), then ping to get an accurate state.
-    Serial.println("[WiFi] Reconnected! Re-resolving PC hostname...");
+    Serial.println("[WiFi] Reconnected! Re-resolving PC hostname via mDNS...");
     wasWifiConnected = true;
     pcIpResolved = false;
+    MDNS.begin("esp32"); // Restart mDNS client after reconnect
 
-    if (WiFi.hostByName(PC_HOSTNAME, pc_ip) == 1) {
+    IPAddress resolved = MDNS.queryHost(PC_HOSTNAME, 2000);
+    if (resolved != INADDR_NONE) {
+      pc_ip = resolved;
       pcIpResolved = true;
-      Serial.printf("[DNS] PC resolved to: %s\r\n", pc_ip.toString().c_str());
+      Serial.printf("[mDNS] PC resolved to: %s\r\n", pc_ip.toString().c_str());
 
       bool pingSuccess = Ping.ping(pc_ip, 1);
       if (pingSuccess != lastKnownPCState) {
@@ -259,7 +268,7 @@ void loop() {
       }
       Serial.printf("[WiFi] Post-reconnect PC state: %s\r\n", lastKnownPCState ? "ON" : "OFF");
     } else {
-      Serial.println("[DNS] Hostname resolution failed after reconnect. Will retry on next loop.");
+      Serial.println("[mDNS] Hostname resolution failed after reconnect.");
     }
     lastPingTime = millis();
   }
