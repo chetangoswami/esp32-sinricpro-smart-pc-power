@@ -30,10 +30,11 @@
 #define SWITCH_ID_FORCE_RESTART "xxxxxxxxxxxxxxxxxxxxxxxx"   // Your "Force Restart" switch Device ID
 
 // ---------------------
-// PC Local IP Address
-// Find yours by running 'ipconfig' in Windows and looking for IPv4 Address
+// PC Hostname
+// Run 'hostname' in Windows Command Prompt to find your PC's name.
+// The ESP32 resolves this automatically — no IP address needed!
 // ---------------------
-#define PC_IP_ADDRESS "192.168.1.XXX"
+#define PC_HOSTNAME "YOUR-PC-NAME.local"  // e.g. "DESKTOP-4IR9HD2.local"
 
 // ---------------------
 // Hardware Pin
