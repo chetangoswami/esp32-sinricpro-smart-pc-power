@@ -6,8 +6,9 @@
 #include "config.h"  // << Fill in your credentials here (never committed)
 
 // PC Monitoring Configuration
-IPAddress pc_ip;
-bool lastKnownPCState = false; // false = OFF, true = ON
+IPAddress pc_ip;                // Resolved at runtime from PC_HOSTNAME
+bool pcIpResolved = false;      // True once hostname has been resolved successfully
+bool lastKnownPCState = false;  // false = OFF, true = ON
 bool wasWifiConnected = false;  // Track WiFi state for reconnect detection
 unsigned long lastPingTime = 0;
 const unsigned long PING_INTERVAL = 5000; // Ping every 5 seconds
@@ -178,6 +179,15 @@ void setup() {
   setupWiFi();
   wasWifiConnected = true; // Mark as connected so loop() doesn't fire a false reconnect event
 
+  // Resolve PC hostname to IP once at boot
+  Serial.printf("[DNS] Resolving PC hostname: %s ...\r\n", PC_HOSTNAME);
+  if (WiFi.hostByName(PC_HOSTNAME, pc_ip) == 1) {
+    pcIpResolved = true;
+    Serial.printf("[DNS] Resolved to: %s\r\n", pc_ip.toString().c_str());
+  } else {
+    Serial.println("[DNS] Resolution failed at boot. Will retry on router reconnect.");
+  }
+
   // Setup Sinric Pro Cloud connection
   setupSinricPro();
 }
@@ -192,7 +202,7 @@ void loop() {
     lastPingTime = currentMillis;
     
     // Check if WiFi is actually connected before pinging
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED && pcIpResolved) {
       bool pingSuccess = Ping.ping(pc_ip, 1); // Send 1 ping attempt
 
       if (pingSuccess != lastKnownPCState) {
@@ -231,18 +241,26 @@ void loop() {
     // WiFi.setAutoReconnect(true) will handle re-association in the background.
   } else if (isNowConnected && !wasWifiConnected) {
     // --- RECONNECT EVENT DETECTED ---
-    // WiFi just came back up. Immediately ping the PC to get an accurate
-    // state before any Sinric Pro command callbacks can fire.
-    Serial.println("[WiFi] Reconnected! Flushing stale PC state, pinging now...");
+    // WiFi just came back up. Re-resolve the hostname first (DHCP may have
+    // given the PC a new IP), then ping to get an accurate state.
+    Serial.println("[WiFi] Reconnected! Re-resolving PC hostname...");
     wasWifiConnected = true;
-    
-    bool pingSuccess = Ping.ping(pc_ip, 1);
-    if (pingSuccess != lastKnownPCState) {
-      lastKnownPCState = pingSuccess;
-      SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
-      mySwitch.sendPowerStateEvent(lastKnownPCState);
+    pcIpResolved = false;
+
+    if (WiFi.hostByName(PC_HOSTNAME, pc_ip) == 1) {
+      pcIpResolved = true;
+      Serial.printf("[DNS] PC resolved to: %s\r\n", pc_ip.toString().c_str());
+
+      bool pingSuccess = Ping.ping(pc_ip, 1);
+      if (pingSuccess != lastKnownPCState) {
+        lastKnownPCState = pingSuccess;
+        SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
+        mySwitch.sendPowerStateEvent(lastKnownPCState);
+      }
+      Serial.printf("[WiFi] Post-reconnect PC state: %s\r\n", lastKnownPCState ? "ON" : "OFF");
+    } else {
+      Serial.println("[DNS] Hostname resolution failed after reconnect. Will retry on next loop.");
     }
-    Serial.printf("[WiFi] Post-reconnect PC state: %s\r\n", lastKnownPCState ? "ON" : "OFF");
-    lastPingTime = millis(); // Reset the ping timer so we don't double-ping immediately
+    lastPingTime = millis();
   }
 }
