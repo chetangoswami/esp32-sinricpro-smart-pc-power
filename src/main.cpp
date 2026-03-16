@@ -8,6 +8,7 @@
 // PC Monitoring Configuration
 IPAddress pc_ip;
 bool lastKnownPCState = false; // false = OFF, true = ON
+bool wasWifiConnected = false;  // Track WiFi state for reconnect detection
 unsigned long lastPingTime = 0;
 const unsigned long PING_INTERVAL = 5000; // Ping every 5 seconds
 
@@ -175,6 +176,7 @@ void setup() {
 
   // Setup Wi-Fi
   setupWiFi();
+  wasWifiConnected = true; // Mark as connected so loop() doesn't fire a false reconnect event
 
   // Setup Sinric Pro Cloud connection
   setupSinricPro();
@@ -211,25 +213,36 @@ void loop() {
     }
   }
 
-  // Additional Wi-Fi Resilience Logic
-  // Check if Wi-Fi is still connected, and manually attempt to reconnect if not.
-  // WiFi.setAutoReconnect(true) handles connection drops gracefully on the ESP32,
-  // but this block ensures we aggressively try to recover if the router drops the connection.
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[WiFi] Connection lost! Reconnecting...");
-    WiFi.disconnect();
-    WiFi.reconnect();
-    
-    unsigned long startReconnect = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startReconnect < 5000) {
-      delay(500);
-      Serial.print(".");
+  // Non-blocking WiFi resilience logic.
+  // We track the previous WiFi state so we can detect the exact moment it
+  // reconnects. On reconnect, we invalidate lastKnownPCState and force an
+  // immediate ping so the safety guards are accurate before any cloud
+  // commands arrive.
+  bool isNowConnected = (WiFi.status() == WL_CONNECTED);
+
+  if (!isNowConnected) {
+    // Not connected. If this is a *new* disconnect, log it.
+    if (wasWifiConnected) {
+      Serial.println("[WiFi] Connection lost! Auto-reconnect is active, waiting...");
+      wasWifiConnected = false;
     }
+    // Do NOT use delay() here — that would block SinricPro.handle() and
+    // prevent the WebSocket from cleanly closing, making reconnect slower.
+    // WiFi.setAutoReconnect(true) will handle re-association in the background.
+  } else if (isNowConnected && !wasWifiConnected) {
+    // --- RECONNECT EVENT DETECTED ---
+    // WiFi just came back up. Immediately ping the PC to get an accurate
+    // state before any Sinric Pro command callbacks can fire.
+    Serial.println("[WiFi] Reconnected! Flushing stale PC state, pinging now...");
+    wasWifiConnected = true;
     
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("\r\n[WiFi] Reconnected successfully.\r\n");
-    } else {
-      Serial.println("\r\n[WiFi] Reconnect failed. Will try again on next loop.\r\n");
+    bool pingSuccess = Ping.ping(pc_ip, 1);
+    if (pingSuccess != lastKnownPCState) {
+      lastKnownPCState = pingSuccess;
+      SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
+      mySwitch.sendPowerStateEvent(lastKnownPCState);
     }
+    Serial.printf("[WiFi] Post-reconnect PC state: %s\r\n", lastKnownPCState ? "ON" : "OFF");
+    lastPingTime = millis(); // Reset the ping timer so we don't double-ping immediately
   }
 }
