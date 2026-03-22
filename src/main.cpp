@@ -21,6 +21,11 @@ unsigned long lastMdnsAttempt = 0;
 unsigned long mdnsBackoffInterval = 5000;
 const unsigned long MAX_MDNS_BACKOFF = 60000; // 1 minute maximum backoff
 
+// Booting Lockout (Cooldown)
+bool isBootingLockoutActive = false;
+unsigned long bootingLockoutStartTime = 0;
+const unsigned long BOOTING_LOCKOUT_DURATION = 90000; // 90 seconds cooldown
+
 // Non-blocking Relay State Machine
 unsigned long relayTriggerStartTime = 0;
 unsigned long relayTriggerDuration = 0;
@@ -68,14 +73,30 @@ bool onPowerState(const String &deviceId, bool &state) {
     // User requested "Turn ON"
     if (lastKnownPCState == true) {
       Serial.println("[Safety] PC is already ON (Ping succeeded). Ignoring 'Turn ON' command.");
-      // Force Sinric back to ON without physical trigger
       state = true;
       return true;
     } else {
+      // PC is currently OFF -> Check for active booting lockout
+      if (isBootingLockoutActive) {
+        if (millis() - bootingLockoutStartTime < BOOTING_LOCKOUT_DURATION) {
+          unsigned long remainingSecs = (BOOTING_LOCKOUT_DURATION - (millis() - bootingLockoutStartTime)) / 1000;
+          Serial.printf("[Safety] PC is already booting! Ignoring secondary 'Turn ON' request for %lu more seconds.\r\n", remainingSecs);
+          state = true; // Keep UI toggle ON
+          return true;
+        } else {
+          // Cooldown expired (e.g., PC failed to boot after 90 seconds), allow retry
+          Serial.println("[Safety] Booting lockout expired without successful ping. Allowing retry.");
+          isBootingLockoutActive = false;
+        }
+      }
+
       Serial.println("[Safety] PC is currently OFF. Executing power trigger...");
       triggerRelay();
-      // Because we triggered it, assume it will be ON soon. 
-      // The ping loop will confirm it later.
+      
+      // Activating Booting Cooldown Lockout
+      isBootingLockoutActive = true;
+      bootingLockoutStartTime = millis();
+      
       state = true;
       return true;
     }
@@ -257,6 +278,13 @@ void loop() {
 
         if (pingSuccess) {
           pingFailureCount = 0; // Reset failure counter
+          
+          if (isBootingLockoutActive) {
+            // PC officially finished booting before lockout naturally expired
+            Serial.println("[Telemetry] PC boot confirmed. Clearing booting lockout timer.");
+            isBootingLockoutActive = false;
+          }
+
           if (!lastKnownPCState) {
             // PC State change from OFF to ON
             lastKnownPCState = true;
