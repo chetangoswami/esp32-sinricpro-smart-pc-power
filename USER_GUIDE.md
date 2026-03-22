@@ -39,11 +39,15 @@ Before you begin, make sure you have the following:
 
 Wiring the relay is straightforward, but selecting the correct pins is crucial to prevent ESP32 boot failures.
 
+![ESP32 Pinout Reference](esp32-pinout.png)
+
 | ESP32 Pin | Relay Pin | Description |
 | :--- | :--- | :--- |
 | **VIN** (or 5V) | **VCC** | Provides 5V power to the relay coil. Do **NOT** use `3V3`. |
 | **GND** | **GND** | System Ground. |
 | **D21** (GPIO 21) | **IN** | The control signal. Do **NOT** use `D5` (strapping pin). |
+
+![Hardware Wiring Setup](hardware-wiring.png)
 
 ```mermaid
 graph LR

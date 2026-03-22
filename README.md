@@ -68,7 +68,7 @@ D21  ─────────► IN
 
 ## 🚀 Getting Started
 
-*Placeholder: 📷 Consider adding a real photo of your completed ESP32 and Relay wired to the motherboard here so users have a visual "sanity check".*
+![Completed ESP32 and Relay wired to the motherboard](hardware-wiring.png)
 
 **We've moved all hardware, wiring, Sinric Pro, and Firewall setup instructions to a dedicated guide.**
 
