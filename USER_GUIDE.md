@@ -103,7 +103,7 @@ We need to create two "Virtual Switches" in the cloud so Google Assistant can ta
    - Click **Save**.
 4. Repeat the process to create a second device:
    - **Name:** "PC Force Restart"
-   - **Description:** "5-second hardware kill switch"
+   - **Description:** "8-second hardware kill switch"
    - **Device Type:** `Switch`
    - Click **Save**.
 5. Navigate to **Credentials** on the left menu. Keep this tab open; you will need the `App Key`, `App Secret`, and the two `Device IDs` for the code.
@@ -168,7 +168,7 @@ Open the Sinric Pro app on your phone (or the web dashboard).
 1. **Turn ON:** Make sure your PC is off. Tap the `PC Power` switch. The relay should click, and your PC should boot. Shortly after, you should receive a push notification from the app.
 2. **Safety Check:** While the PC is running, tap the `PC Power` switch to `ON` again. Nothing should happen — the ESP32 ignores this to protect your game!
 3. **Turn OFF:** Command Google to "Turn off the PC". The relay will click, and Windows will gracefully shut down.
-4. **Force Restart:** While the PC is running, tap the `PC Force Restart` switch. The relay will click and hold for 5 seconds, instantly killing power to the PC.
+4. **Force Restart:** While the PC is running, tap the `PC Force Restart` switch. The relay will click and hold for 8 seconds, instantly killing power to the PC.
 
 ---
 

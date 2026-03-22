@@ -30,8 +30,8 @@
 |---|---|
 | 🔵 **Google Assistant / Alexa Control** | "Hey Google, turn on my PC" |
 | 📡 **Live Power State Detection** | Pings your PC every 5s to know if it's really ON or OFF |
-| 🛡️ **Safety Overrides** | Blocks accidental shutdown if PC is already in that state |
-| ⚡ **Force Restart Kill-Switch** | Holds the power button 5s for a hardware-level reboot |
+| 🛡️ **Safety Overrides** | Blocks accidental shutdown and ignores power commands while booting (90s lockout) |
+| ⚡ **Force Restart Kill-Switch** | Holds the power button 8s for a hardware-level reboot |
 | 🔔 **Boot-Up Push Notification** | Receive a phone alert the moment your PC finishes booting |
 | 💸 **Zero Extra Cost** | Uses your existing ESP32 + $1 relay — no new hardware |
 
@@ -151,7 +151,7 @@ graph TD
 ```
 
 ### Force Restart Logic
-When you press the **Force Restart** switch, the relay holds the PC power button for **5 seconds**. This duration bypasses Windows ACPI and triggers the motherboard's hardware-level power cut — useful when the PC is completely frozen.
+When you press the **Force Restart** switch, the relay holds the PC power button for **8 seconds**. This duration bypasses Windows ACPI and triggers the motherboard's hardware-level power cut — useful when the PC is completely frozen.
 
 ```mermaid
 sequenceDiagram
@@ -163,13 +163,13 @@ sequenceDiagram
     User->>SinricPro: "Force Restart PC"
     SinricPro->>ESP32: Trigger Force Switch
     ESP32->>PC_Motherboard: Pull PWR_SW LOW (ON)
-    Note over ESP32,PC_Motherboard: Hold for 5000ms
+    Note over ESP32,PC_Motherboard: Hold for 8000ms
     ESP32->>PC_Motherboard: Release PWR_SW (OFF)
     Note over PC_Motherboard: Hardware Power Cut Enforced
 ```
 
 ### Safety Overrides
-To prevent you from accidentally turning off your PC while gaming, or turning it "ON" when it is already running (which would actually shut it down), the ESP32 intercepts commands and checks the real `<PC_IP>` state first.
+To prevent you from accidentally turning off your PC while gaming, or turning it "ON" when it is already running (which would actually shut it down), the ESP32 intercepts commands and checks the real `<PC_IP>` state first. Furthermore, a **90-second Boot Lockout** prevents rapid, consecutive "Turn ON" requests while the PC is still starting up.
 
 ```mermaid
 sequenceDiagram
@@ -202,7 +202,7 @@ sequenceDiagram
 |---|---|
 | *"Hey Google, turn on my PC"* | ESP32 pings PC. If OFF → relay pulses 700ms. If already ON → ignores command. |
 | *"Hey Google, turn off my PC"* | ESP32 pings PC. If ON → relay pulses 700ms (graceful Windows shutdown). |
-| *"Hey Google, hard reset my PC"* | Force Restart switch → relay holds for 5s → hardware kill |
+| *"Hey Google, hard reset my PC"* | Force Restart switch → relay holds for 8s → hardware kill |
 | *(PC boots)* | Pings detect OFF→ON change → push notification fires on your phone |
 
 ---
@@ -212,7 +212,7 @@ sequenceDiagram
 | Setting | Location | Default |
 |---|---|---|
 | Relay pulse duration | `src/main.cpp` → `triggerRelay()` | `700ms` |
-| Force Restart duration | `src/main.cpp` → `triggerRelayForce()` | `5000ms` |
+| Force Restart duration | `src/main.cpp` → `triggerRelayForce()` | `8000ms` |
 | Ping interval | `src/main.cpp` → `PING_INTERVAL` | `5000ms` |
 | Relay GPIO pin | `src/config.h` → `RELAY_PIN` | `21` |
 
