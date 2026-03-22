@@ -14,32 +14,46 @@ bool wasWifiConnected = false;  // Track WiFi state for reconnect detection
 unsigned long lastPingTime = 0;
 const unsigned long PING_INTERVAL = 5000; // Ping every 5 seconds
 
+// PC State & Networking Tuning
+int pingFailureCount = 0;
+const int MAX_PING_FAILURES = 3;
+unsigned long lastMdnsAttempt = 0;
+unsigned long mdnsBackoffInterval = 5000;
+const unsigned long MAX_MDNS_BACKOFF = 60000; // 1 minute maximum backoff
+
+// Non-blocking Relay State Machine
+unsigned long relayTriggerStartTime = 0;
+unsigned long relayTriggerDuration = 0;
+bool isRelayTriggerActive = false;
+
 // ==========================================
-// INCHING ROUTINE 
+// INCHING ROUTINE (Non-Blocking)
 // ==========================================
 void triggerRelay() {
-  Serial.println("[Relay] Triggering PC Power Button (Inching)...");
-  // Ultimate Jugaad: Input-Output Toggle (True Open-Drain for 5V power)
-  // Instead of driving HIGH (3.3V), we become an INPUT (Invisible/disconnected)
-  // to let the 5V relay turn itself OFF.
+  Serial.println("[Relay] Triggering PC Power Button (700ms pulse)...");
+  // Hardware Workaround: Utilizing high-impedance INPUT state to simulate
+  // an Open-Drain output, safely interfacing 3.3V logic with a 5V relay.
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);   // Ground the pin → relay ON loud (0V)
-  delay(700);                     // Hold for 700ms 
-  pinMode(RELAY_PIN, INPUT);      // Become invisible → relay OFF (floats to 5V)
-  Serial.println("[Relay] Trigger complete.");
+  digitalWrite(RELAY_PIN, LOW);   // Ground the pin → relay ON (0V)
+  
+  // Start non-blocking timer
+  relayTriggerStartTime = millis();
+  relayTriggerDuration = 700;
+  isRelayTriggerActive = true;
 }
 
 void triggerRelayForce() {
   Serial.println("\r\n======================================");
-  Serial.println("[Relay] EMERGENCY: Triggering FORCE RESTART (5-second hold)...");
+  Serial.println("[Relay] EMERGENCY: Triggering Hard Reset (8-second hold)...");
   Serial.println("======================================\r\n");
   
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);   // Ground the pin → relay ON loud (0V)
-  delay(8000);                    // Hold for 8000ms (Hardware Kill)
-  pinMode(RELAY_PIN, INPUT);      // Become invisible → relay OFF 
+  digitalWrite(RELAY_PIN, LOW);   // Ground the pin → relay ON (0V)
   
-  Serial.println("[Relay] Force Restart trigger complete. PC should be dead.");
+  // Start non-blocking timer
+  relayTriggerStartTime = millis();
+  relayTriggerDuration = 8000;
+  isRelayTriggerActive = true;
 }
 
 // ==========================================
@@ -199,6 +213,15 @@ void setup() {
 }
 
 void loop() {
+  // --- Non-blocking Relay State Machine ---
+  if (isRelayTriggerActive) {
+    if (millis() - relayTriggerStartTime >= relayTriggerDuration) {
+      pinMode(RELAY_PIN, INPUT);      // Become invisible → relay OFF (floats to 5V)
+      isRelayTriggerActive = false;
+      Serial.println("[Relay] Trigger sequence complete. Pin returned to INPUT (Safe / Floating).");
+    }
+  }
+
   // Handle Sinric Pro tasks
   SinricPro.handle();
 
@@ -209,16 +232,22 @@ void loop() {
     
     // Check if WiFi is actually connected
     if (WiFi.status() == WL_CONNECTED) {
-      // If we don't have an IP yet, try to resolve it now
+      // If we don't have an IP yet, try to resolve it now with exponential backoff
       if (!pcIpResolved) {
-        Serial.printf("[mDNS] Attempting to resolve PC hostname: %s.local ...\r\n", PC_HOSTNAME);
-        IPAddress resolved = MDNS.queryHost(PC_HOSTNAME, 2000);
-        if (resolved != INADDR_NONE) {
-          pc_ip = resolved;
-          pcIpResolved = true;
-          Serial.printf("[mDNS] Resolved to: %s\r\n", pc_ip.toString().c_str());
-        } else {
-          Serial.println("[mDNS] Hostname resolution failed. Will retry later.");
+        if (currentMillis - lastMdnsAttempt >= mdnsBackoffInterval) {
+          lastMdnsAttempt = currentMillis;
+          Serial.printf("[mDNS] Attempting to resolve PC hostname: %s.local ...\r\n", PC_HOSTNAME);
+          IPAddress resolved = MDNS.queryHost(PC_HOSTNAME, 2000);
+          
+          if (resolved != INADDR_NONE) {
+            pc_ip = resolved;
+            pcIpResolved = true;
+            mdnsBackoffInterval = 5000; // Reset backoff on success
+            Serial.printf("[mDNS] Resolved to: %s\r\n", pc_ip.toString().c_str());
+          } else {
+            Serial.printf("[mDNS] Hostname resolution failed. Backing off for %lu ms...\r\n", mdnsBackoffInterval);
+            mdnsBackoffInterval = min(mdnsBackoffInterval * 2, MAX_MDNS_BACKOFF); // Exponential backoff maxing at 60s
+          }
         }
       }
 
@@ -226,19 +255,31 @@ void loop() {
       if (pcIpResolved) {
         bool pingSuccess = Ping.ping(pc_ip, 1); // Send 1 ping attempt
 
-        if (pingSuccess != lastKnownPCState) {
-          // The PC state has changed! Let's update Sinric and the local variable
-          lastKnownPCState = pingSuccess;
-          
-          SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
-          mySwitch.sendPowerStateEvent(lastKnownPCState); // Push the live state to your phone
-          
-          if (lastKnownPCState) {
+        if (pingSuccess) {
+          pingFailureCount = 0; // Reset failure counter
+          if (!lastKnownPCState) {
+            // PC State change from OFF to ON
+            lastKnownPCState = true;
+            SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
+            mySwitch.sendPowerStateEvent(true); // Push the live state to your phone
+            
             Serial.println("[Telemetry] Ping Success! PC is now running.");
-            // Send Push Notification to phone
             mySwitch.sendPushNotification("Your PC has successfully booted and is now online!");
+          }
+        } else {
+          // Ping failed
+          pingFailureCount++;
+          if (pingFailureCount >= MAX_PING_FAILURES) {
+            if (lastKnownPCState) {
+              // PC State change from ON to OFF
+              lastKnownPCState = false;
+              SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
+              mySwitch.sendPowerStateEvent(false); // Push the live state to your phone
+              Serial.println("[Telemetry] Ping failed 3 consecutive times. PC is now officially OFF.");
+            }
+            pingFailureCount = MAX_PING_FAILURES; // Cap counter
           } else {
-            Serial.println("[Telemetry] Ping Failed! PC is off or unreachable.");
+            Serial.printf("[Telemetry] Ping dropped (Attempt %d/%d). Filtering jitter...\r\n", pingFailureCount, MAX_PING_FAILURES);
           }
         }
       }
