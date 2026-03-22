@@ -207,23 +207,39 @@ void loop() {
   if (currentMillis - lastPingTime >= PING_INTERVAL) {
     lastPingTime = currentMillis;
     
-    // Check if WiFi is actually connected before pinging
-    if (WiFi.status() == WL_CONNECTED && pcIpResolved) {
-      bool pingSuccess = Ping.ping(pc_ip, 1); // Send 1 ping attempt
-
-      if (pingSuccess != lastKnownPCState) {
-        // The PC state has changed! Let's update Sinric and the local variable
-        lastKnownPCState = pingSuccess;
-        
-        SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
-        mySwitch.sendPowerStateEvent(lastKnownPCState); // Push the live state to your phone
-        
-        if (lastKnownPCState) {
-          Serial.println("[Telemetry] Ping Success! PC is now running.");
-          // Send Push Notification to phone
-          mySwitch.sendPushNotification("Your PC has successfully booted and is now online!");
+    // Check if WiFi is actually connected
+    if (WiFi.status() == WL_CONNECTED) {
+      // If we don't have an IP yet, try to resolve it now
+      if (!pcIpResolved) {
+        Serial.printf("[mDNS] Attempting to resolve PC hostname: %s.local ...\r\n", PC_HOSTNAME);
+        IPAddress resolved = MDNS.queryHost(PC_HOSTNAME, 2000);
+        if (resolved != INADDR_NONE) {
+          pc_ip = resolved;
+          pcIpResolved = true;
+          Serial.printf("[mDNS] Resolved to: %s\r\n", pc_ip.toString().c_str());
         } else {
-          Serial.println("[Telemetry] Ping Failed! PC is off or unreachable.");
+          Serial.println("[mDNS] Hostname resolution failed. Will retry later.");
+        }
+      }
+
+      // If we have an IP, ping it
+      if (pcIpResolved) {
+        bool pingSuccess = Ping.ping(pc_ip, 1); // Send 1 ping attempt
+
+        if (pingSuccess != lastKnownPCState) {
+          // The PC state has changed! Let's update Sinric and the local variable
+          lastKnownPCState = pingSuccess;
+          
+          SinricProSwitch& mySwitch = SinricPro[SWITCH_ID];
+          mySwitch.sendPowerStateEvent(lastKnownPCState); // Push the live state to your phone
+          
+          if (lastKnownPCState) {
+            Serial.println("[Telemetry] Ping Success! PC is now running.");
+            // Send Push Notification to phone
+            mySwitch.sendPushNotification("Your PC has successfully booted and is now online!");
+          } else {
+            Serial.println("[Telemetry] Ping Failed! PC is off or unreachable.");
+          }
         }
       }
     }
@@ -231,9 +247,8 @@ void loop() {
 
   // Non-blocking WiFi resilience logic.
   // We track the previous WiFi state so we can detect the exact moment it
-  // reconnects. On reconnect, we invalidate lastKnownPCState and force an
-  // immediate ping so the safety guards are accurate before any cloud
-  // commands arrive.
+  // reconnects. On reconnect, we force an immediate ping so the safety guards 
+  // are accurate before any cloud commands arrive.
   bool isNowConnected = (WiFi.status() == WL_CONNECTED);
 
   if (!isNowConnected) {
@@ -242,24 +257,27 @@ void loop() {
       Serial.println("[WiFi] Connection lost! Auto-reconnect is active, waiting...");
       wasWifiConnected = false;
     }
-    // Do NOT use delay() here — that would block SinricPro.handle() and
-    // prevent the WebSocket from cleanly closing, making reconnect slower.
-    // WiFi.setAutoReconnect(true) will handle re-association in the background.
+    // Do NOT use delay() here — that would block SinricPro.handle()
   } else if (isNowConnected && !wasWifiConnected) {
     // --- RECONNECT EVENT DETECTED ---
-    // WiFi just came back up. Re-resolve the hostname first (DHCP may have
-    // given the PC a new IP), then ping to get an accurate state.
-    Serial.println("[WiFi] Reconnected! Re-resolving PC hostname via mDNS...");
+    Serial.println("[WiFi] Reconnected! Restoring connections...");
     wasWifiConnected = true;
-    pcIpResolved = false;
     MDNS.begin("esp32"); // Restart mDNS client after reconnect
 
+    Serial.printf("[mDNS] Re-resolving PC hostname: %s.local ...\r\n", PC_HOSTNAME);
     IPAddress resolved = MDNS.queryHost(PC_HOSTNAME, 2000);
     if (resolved != INADDR_NONE) {
       pc_ip = resolved;
       pcIpResolved = true;
       Serial.printf("[mDNS] PC resolved to: %s\r\n", pc_ip.toString().c_str());
+    } else {
+      Serial.println("[mDNS] Hostname resolution failed after reconnect.");
+      if (pcIpResolved) {
+        Serial.printf("[mDNS] Falling back to last known IP: %s\r\n", pc_ip.toString().c_str());
+      }
+    }
 
+    if (pcIpResolved) {
       bool pingSuccess = Ping.ping(pc_ip, 1);
       if (pingSuccess != lastKnownPCState) {
         lastKnownPCState = pingSuccess;
@@ -267,8 +285,6 @@ void loop() {
         mySwitch.sendPowerStateEvent(lastKnownPCState);
       }
       Serial.printf("[WiFi] Post-reconnect PC state: %s\r\n", lastKnownPCState ? "ON" : "OFF");
-    } else {
-      Serial.println("[mDNS] Hostname resolution failed after reconnect.");
     }
     lastPingTime = millis();
   }
