@@ -176,6 +176,7 @@ sequenceDiagram
     participant User
     participant SinricPro
     participant ESP32
+    participant Relay
     participant PC_IP
     
     User->>SinricPro: "Turn ON my PC"
@@ -184,13 +185,19 @@ sequenceDiagram
     
     alt PC is already ON (Ping Success)
         PC_IP-->>ESP32: Reply
-        note over ESP32: Command Ignored (Safety)
+        note over ESP32: Command Ignored (Already running)
         ESP32-->>SinricPro: State remains ON
     else PC is OFF (Ping Timeout)
         PC_IP--xESP32: Timeout
-        note over ESP32: Safe to proceed
-        ESP32->>Relay: Pulse 700ms
-        ESP32-->>SinricPro: State changed to ON
+        alt Boot Lockout Timer Active (< 90s)
+            note over ESP32: Command Ignored (PC is booting)
+            ESP32-->>SinricPro: State remains ON
+        else Boot Timer Inactive
+            note over ESP32: Safe to proceed
+            ESP32->>Relay: Pulse 700ms
+            note over ESP32: Start 90s Boot Lockout Timer
+            ESP32-->>SinricPro: State changed to ON
+        end
     end
 ```
 
