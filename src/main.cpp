@@ -21,6 +21,11 @@ unsigned long lastMdnsAttempt = 0;
 unsigned long mdnsBackoffInterval = 5000;
 const unsigned long MAX_MDNS_BACKOFF = 60000; // 1 minute maximum backoff
 
+// Hardware Watchdog (Offline Recovery)
+unsigned long offlineStartTime = 0;
+bool isOfflineWatchdogActive = false;
+const unsigned long OFFLINE_RESTART_TIMEOUT = 300000; // 5 minutes
+
 // Booting Lockout (Cooldown)
 bool isBootingLockoutActive = false;
 unsigned long bootingLockoutStartTime = 0;
@@ -319,6 +324,26 @@ void loop() {
   // reconnects. On reconnect, we force an immediate ping so the safety guards 
   // are accurate before any cloud commands arrive.
   bool isNowConnected = (WiFi.status() == WL_CONNECTED);
+  bool isCloudConnected = SinricPro.isConnected();
+
+  // Hardware Watchdog Reboot Timer: If either WiFi or Cloud drops for 5+ mins, reboot ESP.
+  // This physically forces a hardware-level recovery of the stuck WiFi stack.
+  if (!isNowConnected || !isCloudConnected) {
+    if (!isOfflineWatchdogActive) {
+      isOfflineWatchdogActive = true;
+      offlineStartTime = millis();
+      Serial.println("[Watchdog] Alert: Device went offline. Starting 5-minute reboot timer...");
+    } else if (millis() - offlineStartTime >= OFFLINE_RESTART_TIMEOUT) {
+      Serial.println("[Watchdog] CRITICAL FAILURE: Offline for over 5 minutes. Rebooting ESP32 to fully recover...");
+      ESP.restart(); // Software halt, hardware reboot triggers internally
+    }
+  } else {
+    // Both WiFi and Cloud are alive
+    if (isOfflineWatchdogActive) {
+      isOfflineWatchdogActive = false;
+      Serial.println("[Watchdog] Alert condition resolved. Device is back online. Reboot timer cancelled.");
+    }
+  }
 
   if (!isNowConnected) {
     // Not connected. If this is a *new* disconnect, log it.
