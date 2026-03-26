@@ -14,7 +14,8 @@ Welcome to the full user guide for the **ESP32 Smart PC Power Controller**. This
 4. [Flashing the Firmware](#4-flashing-the-firmware)
 5. [Windows Configuration (Firewall)](#5-windows-configuration-firewall)
 6. [Testing the System](#6-testing-the-system)
-7. [Troubleshooting & FAQ](#7-troubleshooting--faq)
+7. [Siri Control via Apple Shortcuts](#7-siri-control-via-apple-shortcuts)
+8. [Troubleshooting & FAQ](#8-troubleshooting--faq)
 
 ---
 
@@ -172,7 +173,36 @@ Open the Sinric Pro app on your phone (or the web dashboard).
 
 ---
 
-## 7. Troubleshooting & FAQ
+## 7. Siri Control via Apple Shortcuts
+
+The Sinric Pro iOS app now natively supports **Apple Shortcuts**, which means you can control your PC using **Siri** without any extra hardware or third-party integrations.
+
+> 📱 **Requires:** Sinric Pro iOS app (latest version from the App Store) + Apple Shortcuts app (pre-installed on all iPhones).
+
+### Setup Steps
+
+1. Download or update the **Sinric Pro** app from the [iOS App Store](https://apps.apple.com/app/sinric-pro/id1536510399) and **log in** to your account. Verify that your **"PC Power"** switch is visible and online.
+2. Open the **Apple Shortcuts** app on your iPhone.
+3. Tap the **`+`** icon in the top-right corner to create a new shortcut.
+4. Tap **Add Action** and search for **`Sinric Pro`**.
+5. Select the action for your **"PC Power"** device — choose **Turn On**.
+6. Tap the **`⌄` (downward chevron)** at the top of the screen to rename the shortcut.
+   > ⚠️ **This name is exactly what you will say to Siri.** Choose wisely!
+   > - ✅ Recommended: `"Turn on my PC"` or `"Start gaming PC"`
+   > - ❌ Avoid generic names like `"PC"` that may conflict with other shortcuts.
+7. Tap **Done** to save the shortcut.
+
+### Testing
+
+Say: **"Hey Siri, turn on my PC"**
+
+Siri will trigger the Sinric Pro shortcut, which sends the ON command to your ESP32 via the cloud — the same safety checks (ping verification + boot lockout) apply as with Google or Alexa.
+
+> 💡 **Pro Tip:** Create a second shortcut named `"Turn off my PC"` and link it to the **Turn Off** action for the same device. You can also create a `"Hard reset my PC"` shortcut pointing to the **PC Force Restart** device.
+
+---
+
+## 8. Troubleshooting & FAQ
 
 ### The Relay clicks, but the PC doesn't turn on
 * **Is the relay getting 5V?** If you powered the relay from the ESP32's `3V3` pin, the electromagnet is too weak to close the contacts tightly. Move the `VCC` wire to the `VIN` or `5V` pin on the ESP32.

@@ -2,7 +2,7 @@
 
 # 🖥️ ESP32 Smart PC Power Controller
 
-**Control your gaming PC with Google Assistant, Alexa, or any smart home app — using a $1 relay and an ESP32.**
+**Control your gaming PC with Google Assistant, Alexa, Siri, or any smart home app — using a $1 relay and an ESP32.**
 
 [![PlatformIO](https://img.shields.io/badge/Built%20with-PlatformIO-orange?logo=platformio)](https://platformio.org/)
 [![Sinric Pro](https://img.shields.io/badge/Cloud-Sinric%20Pro-blue)](https://sinric.pro/)
@@ -28,7 +28,7 @@
 
 | Feature | Description |
 |---|---|
-| 🔵 **Google Assistant / Alexa Control** | "Hey Google, turn on my PC" |
+| 🔵 **Google Assistant / Alexa / Siri** | "Hey Google / Siri, turn on my PC" |
 | 📡 **Live Power State Detection** | Pings your PC every 5s to know if it's really ON or OFF |
 | 🛡️ **Safety Overrides** | Blocks accidental shutdown and ignores power commands while booting (90s lockout) |
 | ⚡ **Force Restart Kill-Switch** | Holds the power button 8s for a hardware-level reboot |
@@ -205,12 +205,14 @@ sequenceDiagram
 
 ## 📱 Usage Examples
 
-| You Say | What Happens |
-|---|---|
-| *"Hey Google, turn on my PC"* | ESP32 pings PC. If OFF → relay pulses 700ms. If already ON → ignores command. |
-| *"Hey Google, turn off my PC"* | ESP32 pings PC. If ON → relay pulses 700ms (graceful Windows shutdown). |
-| *"Hey Google, hard reset my PC"* | Force Restart switch → relay holds for 8s → hardware kill |
-| *(PC boots)* | Pings detect OFF→ON change → push notification fires on your phone |
+| You Say | Platform | What Happens |
+|---|---|---|
+| *"Hey Google, turn on my PC"* | Google Assistant | ESP32 pings PC. If OFF → relay pulses 700ms. If already ON → ignores. |
+| *"Alexa, turn on Gaming PC"* | Amazon Alexa | Same safety logic applies. |
+| *"Hey Siri, turn on my PC"* | Apple Shortcuts | Triggers the Sinric Pro shortcut action. Same safety logic. |
+| *"Hey Google, turn off my PC"* | Google Assistant | ESP32 pings PC. If ON → relay pulses 700ms (graceful shutdown). |
+| *"Hey Google, hard reset my PC"* | Google Assistant | Force Restart switch → relay holds for 8s → hardware kill |
+| *(PC boots)* | Any | Pings detect OFF→ON change → push notification fires on your phone |
 
 ---
 
