@@ -33,18 +33,19 @@
 | 🛡️ **Safety Overrides** | Blocks accidental shutdown and ignores power commands while booting (90s lockout) |
 | ⚡ **Force Restart Kill-Switch** | Holds the power button 8s for a hardware-level reboot |
 | 🔔 **Boot-Up Push Notification** | Receive a phone alert the moment your PC finishes booting |
-| 💸 **Zero Extra Cost** | Uses your existing ESP32 + $1 relay — no new hardware |
+| 💸 **Ultra-Low Cost** | Total build cost ~₹450 — ESP32 + relay + jumper wires |
 
 ---
 
 ## 🧰 Hardware Required
 
-| Component | Notes |
-|---|---|
-| **ESP32 Dev Board** | Any standard 38-pin ESP32 module |
-| **5V Single-Channel Relay Module** | Most common ~$1 relay boards work |
-| **Female-to-Female Jumper Wires** | x3 (VCC, GND, IN) |
-| **PC Motherboard** | Any ATX motherboard with a front-panel PWR_SW header |
+| Component | Approx. Cost (India) | Notes |
+|---|---|---|
+| **ESP32 Dev Board** | ₹330 | Any standard 38-pin ESP32 module |
+| **5V Single-Channel Relay Module** | ₹100 | Most common low-level trigger relay boards work |
+| **Female-to-Female Jumper Wires** | ₹40 | x3 (VCC, GND, IN) |
+| **PC Motherboard** | — | Any ATX motherboard with a front-panel PWR_SW header |
+| | **~₹450 total** | |
 
 > **No transistor, no level shifter, no soldering required!** This project uses a software "True Open-Drain" trick to drive a 5V relay from the ESP32's 3.3V GPIO safely.
 
