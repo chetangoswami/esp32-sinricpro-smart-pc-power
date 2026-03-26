@@ -14,8 +14,10 @@ Welcome to the full user guide for the **ESP32 Smart PC Power Controller**. This
 4. [Flashing the Firmware](#4-flashing-the-firmware)
 5. [Windows Configuration (Firewall)](#5-windows-configuration-firewall)
 6. [Testing the System](#6-testing-the-system)
-7. [Siri Control via Apple Shortcuts](#7-siri-control-via-apple-shortcuts)
-8. [Troubleshooting & FAQ](#8-troubleshooting--faq)
+7. [Google Home Setup](#7-google-home-setup)
+8. [Amazon Alexa Setup](#8-amazon-alexa-setup)
+9. [Siri Control via Apple Shortcuts](#9-siri-control-via-apple-shortcuts)
+10. [Troubleshooting & FAQ](#10-troubleshooting--faq)
 
 ---
 
@@ -173,7 +175,66 @@ Open the Sinric Pro app on your phone (or the web dashboard).
 
 ---
 
-## 7. Siri Control via Apple Shortcuts
+## 7. Google Home Setup
+
+Sinric Pro integrates natively with **Google Home**, allowing you to control your PC with your voice through a Google smart speaker, the Google Home app, or any Android phone.
+
+> 📱 **Requires:** Google account + Google Home app (Android / iOS).
+
+### Linking Sinric Pro to Google Home
+
+1. Open the **Google Home** app on your phone.
+2. Tap the **`+`** icon in the top-left corner, then tap **Set up device**.
+3. Select **Works with Google** (also shown as "Have something already set up?").
+4. Search for **`Sinric Pro`** and tap it.
+5. **Sign in** with your Sinric Pro account credentials to authorize the link.
+6. Your Sinric Pro devices ("PC Power" and "PC Force Restart") will be automatically imported. Tap **Done**.
+
+### Assigning to a Room (Optional but Recommended)
+
+To say *"Hey Google, turn on my PC"* without specifying a room, you can optionally assign the device to your preferred room in the Home app.
+
+1. In the Google Home app, tap the **PC Power** device card.
+2. Tap the ⚙️ gear icon → **Room** → choose or create a room (e.g., "Office" or "Gaming Room").
+
+### Testing
+
+Say: **"Hey Google, turn on PC Power"** or add it to a Google Home routine for one-word activation.
+
+> 💡 **Pro Tip:** In the Google Home app, you can rename the device to something shorter like `"My PC"` so you can say *"Hey Google, turn on my PC"* naturally.
+
+---
+
+## 8. Amazon Alexa Setup
+
+Sinric Pro has an official **Alexa Smart Home skill**, meaning your PC switch will behave like any other smart plug in Alexa's ecosystem — controllable by voice, routines, and the Alexa app.
+
+> 📱 **Requires:** Amazon account + Alexa app (Android / iOS).
+
+### Enabling the Sinric Pro Skill
+
+1. Open the **Amazon Alexa** app on your phone.
+2. Tap the **☰ menu** → **Skills & Games**.
+3. Search for **`Sinric Pro`** and tap **Enable to Use**.
+4. **Sign in** with your Sinric Pro account credentials to authorize the link.
+5. Alexa will discover your devices automatically. Tap **Done**.
+
+### Running Device Discovery Manually
+
+If your devices weren't detected automatically:
+
+1. In the Alexa app, tap **Devices** → **`+`** → **Add Device** → **Other**.
+2. Tap **Discover Devices**. Wait ~20 seconds for Alexa to find "PC Power" and "PC Force Restart".
+
+### Testing
+
+Say: **"Alexa, turn on PC Power"**
+
+> 💡 **Pro Tip:** In the Alexa app, rename "PC Power" to just `"my PC"` under Device Settings, so you can say *"Alexa, turn on my PC"* for a more natural command.
+
+---
+
+## 9. Siri Control via Apple Shortcuts
 
 The Sinric Pro iOS app now natively supports **Apple Shortcuts**, which means you can control your PC using **Siri** without any extra hardware or third-party integrations.
 
@@ -202,7 +263,7 @@ Siri will trigger the Sinric Pro shortcut, which sends the ON command to your ES
 
 ---
 
-## 8. Troubleshooting & FAQ
+## 10. Troubleshooting & FAQ
 
 ### The Relay clicks, but the PC doesn't turn on
 * **Is the relay getting 5V?** If you powered the relay from the ESP32's `3V3` pin, the electromagnet is too weak to close the contacts tightly. Move the `VCC` wire to the `VIN` or `5V` pin on the ESP32.
