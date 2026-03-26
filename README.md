@@ -43,7 +43,7 @@
 |---|---|---|
 | **ESP32 Dev Board** | ₹330 | Any standard 38-pin ESP32 module |
 | **5V Single-Channel Relay Module** | ₹100 | Most common low-level trigger relay boards work |
-| **Female-to-Female Jumper Wires** | ₹40 | x3 (VCC, GND, IN) |
+| **Female-to-Female Jumper Wires** | ₹40 (whole pack) | Only 3 needed (VCC, GND, IN) |
 | **PC Motherboard** | — | Any ATX motherboard with a front-panel PWR_SW header |
 | | **~₹450 total** | |
 
