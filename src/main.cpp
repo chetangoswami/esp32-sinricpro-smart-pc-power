@@ -238,13 +238,8 @@ void setup() {
   }
 
   // Initialize hardware watchdog: resets ESP if loop() is blocked for >30 seconds
-  esp_task_wdt_config_t wdt_config = {
-    .timeout_ms = 30000,
-    .idle_core_mask = 0,
-    .trigger_panic = true
-  };
-  esp_task_wdt_reconfigure(&wdt_config);
-  esp_task_wdt_add(NULL); // Subscribe current task (loop) to the hardware watchdog
+  esp_task_wdt_init(30, true); // 30s timeout, panic/reset on trigger
+  esp_task_wdt_add(NULL);      // Subscribe current task (loop) to the hardware watchdog
   Serial.println("[Hardware] Hardware watchdog initialized (30s timeout).");
 
   // Setup Sinric Pro Cloud connection
