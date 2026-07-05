@@ -4,6 +4,7 @@
 #include "SinricPro.h"
 #include "SinricProSwitch.h"
 #include <ESP32Ping.h>
+#include <esp_task_wdt.h>  // Hardware watchdog — resets ESP if loop() freezes
 #include "config.h"  // << Fill in your credentials here (never committed)
 
 // PC Monitoring Configuration
@@ -24,7 +25,9 @@ const unsigned long MAX_MDNS_BACKOFF = 60000; // 1 minute maximum backoff
 // Hardware Watchdog (Offline Recovery)
 unsigned long offlineStartTime = 0;
 bool isOfflineWatchdogActive = false;
-const unsigned long OFFLINE_RESTART_TIMEOUT = 300000; // 5 minutes
+const unsigned long OFFLINE_RESTART_TIMEOUT = 120000; // 2 minutes (reduced from 5)
+unsigned long lastReconnectAttempt = 0;
+const unsigned long RECONNECT_INTERVAL = 30000; // Try reconnecting every 30s before rebooting
 
 // Booting Lockout (Cooldown)
 bool isBootingLockoutActive = false;
@@ -234,11 +237,23 @@ void setup() {
     Serial.println("[mDNS] Resolution failed at boot. Will retry on reconnect.");
   }
 
+  // Initialize hardware watchdog: resets ESP if loop() is blocked for >30 seconds
+  esp_task_wdt_config_t wdt_config = {
+    .timeout_ms = 30000,
+    .idle_core_mask = 0,
+    .trigger_panic = true
+  };
+  esp_task_wdt_reconfigure(&wdt_config);
+  esp_task_wdt_add(NULL); // Subscribe current task (loop) to the hardware watchdog
+  Serial.println("[Hardware] Hardware watchdog initialized (30s timeout).");
+
   // Setup Sinric Pro Cloud connection
   setupSinricPro();
 }
 
 void loop() {
+  esp_task_wdt_reset(); // Feed the hardware watchdog — proves loop() is alive
+
   // --- Non-blocking Relay State Machine ---
   if (isRelayTriggerActive) {
     if (millis() - relayTriggerStartTime >= relayTriggerDuration) {
@@ -326,16 +341,27 @@ void loop() {
   bool isNowConnected = (WiFi.status() == WL_CONNECTED);
   bool isCloudConnected = SinricPro.isConnected();
 
-  // Hardware Watchdog Reboot Timer: If either WiFi or Cloud drops for 5+ mins, reboot ESP.
-  // This physically forces a hardware-level recovery of the stuck WiFi stack.
+  // Hardware Watchdog Reboot Timer: If either WiFi or Cloud drops, try reconnecting
+  // first, then reboot after 2 minutes of failed recovery.
   if (!isNowConnected || !isCloudConnected) {
     if (!isOfflineWatchdogActive) {
       isOfflineWatchdogActive = true;
       offlineStartTime = millis();
-      Serial.println("[Watchdog] Alert: Device went offline. Starting 5-minute reboot timer...");
-    } else if (millis() - offlineStartTime >= OFFLINE_RESTART_TIMEOUT) {
-      Serial.println("[Watchdog] CRITICAL FAILURE: Offline for over 5 minutes. Rebooting ESP32 to fully recover...");
-      ESP.restart(); // Software halt, hardware reboot triggers internally
+      lastReconnectAttempt = 0; // Force immediate reconnect attempt
+      Serial.println("[Watchdog] Alert: Device went offline. Starting 2-minute reboot timer...");
+    }
+
+    // Every 30s: actively try to reconnect Sinric Pro before giving up
+    unsigned long now = millis();
+    if (isNowConnected && !isCloudConnected && (now - lastReconnectAttempt >= RECONNECT_INTERVAL)) {
+      lastReconnectAttempt = now;
+      Serial.println("[Watchdog] WiFi OK but cloud offline — forcing Sinric Pro reconnect...");
+      SinricPro.begin(APP_KEY, APP_SECRET);
+    }
+
+    if (millis() - offlineStartTime >= OFFLINE_RESTART_TIMEOUT) {
+      Serial.println("[Watchdog] CRITICAL: Offline for 2 minutes with no recovery. Rebooting ESP32...");
+      ESP.restart();
     }
   } else {
     // Both WiFi and Cloud are alive
